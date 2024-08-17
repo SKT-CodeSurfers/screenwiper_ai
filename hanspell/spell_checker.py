@@ -14,6 +14,8 @@ from . import __version__
 from .response import Checked
 from .constants import base_url
 from .constants import CheckResult
+import re
+import requests
 
 _agent = requests.Session()
 PY3 = sys.version_info[0] == 3
@@ -27,6 +29,29 @@ def _remove_tags(text):
     result = ''.join(ET.fromstring(text).itertext())
 
     return result
+
+def get_passport_key():
+    """네이버에서 '네이버 맞춤법 검사기' 페이지에서 passportKey를 획득
+
+        - 네이버에서 '네이버 맞춤법 검사기'를 띄운 후 
+        html에서 passportKey를 검색하면 값을 찾을 수 있다.
+
+        - 찾은 값을 spell_checker.py 48 line에 적용한다.
+    """
+
+    url = "https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=네이버+맞춤법+검사기"
+    res = requests.get(url)
+
+    html_text = res.text
+
+    match = re.search(r'passportKey=([^&"}]+)', html_text)
+    if match:
+        passport_key = match.group(1)
+        return passport_key
+    else:
+        return False
+
+
 
 
 def check(text):
@@ -45,6 +70,7 @@ def check(text):
         return Checked(result=False)
 
     payload = {
+        "passportKey": get_passport_key(),
         'color_blindness': '0',
         'q': text
     }
